@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temple Run Style Game</title>
+    <style>
+        body {
+            margin: 0;
+            background: #111;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            color: white;
+        }
+        #gameCanvas {
+            background: linear-gradient(to bottom, #87CEEB, #2E8B57);
+            display: block;
+            margin: 20px auto;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+        #ui {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Temple Runner Mini</h1>
+    <div id="ui">Score: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+    <p>Controls: Use <b>Left / Right Arrow Keys</b> or <b>A / D</b> to move, <b>Spacebar</b> to Jump!</p>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Player properties
+        let player = {
+            x: 275,
+            y: 310,
+            width: 30,
+            height: 50,
+            speed: 5,
+            dy: 0,
+            jumpPower: -10,
+            gravity: 0.5,
+            grounded: true
+        };
+
+        // Obstacles array
+        let obstacles = [];
+        let score = 0;
+        let gameRunning = true;
+
+        // Controls
+        let keys = {};
+        window.addEventListener("keydown", (e) => { keys[e.code] = true; });
+        window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+        // Spawn Obstacles
+        function spawnObstacle() {
+            if (Math.random() < 0.02) {
+                let lanes = [175, 275, 375]; // 3 lanes like Temple Run
+                let randomLane = lanes[Math.floor(Math.random() * lanes.length)];
+                obstacles.push({
+                    x: randomLane,
+                    y: -50,
+                    width: 40,
+                    height: 40,
+                    speed: 4
+                });
+            }
+        }
+
+        // Game Loop
+        function update() {
+            if (!gameRunning) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Road (Perspective effect)
+            ctx.fillStyle = "#555";
+            ctx.beginPath();
+            ctx.moveTo(150, 0);
+            ctx.lineTo(450, 0);
+            ctx.lineTo(550, 400);
+            ctx.lineTo(50, 400);
+            ctx.closePath();
+            ctx.fill();
+
+            // Player Movement Logic
+            if ((keys["ArrowLeft"] || keys["KeyA"]) && player.x > 160) {
+                player.x -= player.speed;
+            }
+            if ((keys["ArrowRight"] || keys["KeyD"]) && player.x < 410) {
+                player.x += player.speed;
+            }
+
+            // Jump Logic
+            if ((keys["Space"] || keys["ArrowUp"]) && player.grounded) {
+                player.dy = player.jumpPower;
+                player.grounded = false;
+            }
+
+            player.dy += player.gravity;
+            player.y += player.dy;
+
+            // Ground collision
+            if (player.y > 310) {
+                player.y = 310;
+                player.dy = 0;
+                player.grounded = true;
+            }
+
+            // Draw Player (Adventurer)
+            ctx.fillStyle = "#ffcc00";
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Obstacle logic
+            spawnObstacle();
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.y += obs.speed;
+
+                // Draw Obstacle (Rolling stone/trap)
+                ctx.fillStyle = "#8B0000";
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+
+                // Collision Detection
+                if (
+                    player.x < obs.x + obs.width &&
+                    player.x + player.width > obs.x &&
+                    player.y < obs.y + obs.height &&
+                    player.y + player.height > obs.y
+                ) {
+                    gameRunning = false;
+                    alert("Game Over! Score: " + score);
+                    document.location.reload();
+                }
+
+                // Remove off-screen obstacles & update score
+                if (obs.y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    score += 10;
+                    document.getElementById("score").innerText = score;
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        update();
+    </script>
+</body>
+</html>
